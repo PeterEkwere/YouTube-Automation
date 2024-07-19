@@ -3,3 +3,6 @@ __pycache__
 temp/
 Youtube_env/
 SeleniumBase/
+login_gmail_selenium/
+.git/
+.pytest_cache/
