@@ -23,6 +23,8 @@ import time
 import random
 from threading import Thread
 from itertools import cycle, repeat
+import random
+from selenium_stealth import stealth
 
 # Add some random delays to mimic human behavior
 def random_delay():
@@ -34,6 +36,73 @@ def random_delay():
 class Youtube:
     """ The Youtube class will handle every method regarding Youtube
     """
+
+    nigerian_websites = [
+        'nairaland.com',
+        'jumia.com.ng',
+        'konga.com',
+        'guardian.ng',
+        'vanguardngr.com',
+        'punchng.com',
+        'dailypost.ng',
+        'thisdaylive.com',
+        'premiumtimesng.com',
+        'bbc.com/pidgin',
+        'pulse.ng',
+        'thenationonlineng.net',
+        'channelstv.com',
+        'techpoint.ng',
+        'allafrica.com/nigeria',
+        'nigeriabusinessinfo.com',
+        'ng.trustpilot.com',
+        'myjobmag.com',
+        'jobberman.com',
+        'hotels.ng',
+        'legit.ng',
+        'ng.indeed.com',
+        'naij.com',
+        'bellanaija.com',
+        "lindaikejisblog.com",
+        "bellanaija.com",
+        "sisiyemmie.com",
+        "ogbongeblog.com",
+        "9jafoodie.com",
+        "naijanews.com",
+        "mcebiscoo.com",
+        "notjustok.com",
+        "gistlover.com",
+        "thenewsguru.com",
+        "creebhills.com",
+        "mpmania.com",
+        "akelicious.net",
+        "vanguardngr.com",
+        "wothappen.com",
+        "dailyreportng.com",
+        "naijabulletin",
+        "9newsng.com",
+        "jadore-fashion.com",
+        "newsonlineng.com",
+        "amebo9ja.com",
+        "legit9ja.com",
+        "newsblenda.com",
+        "africanentertainment.com",
+        "naijanowell.com",
+        "mathewtegha.com",
+        "wothappen.com",
+        "cybernaira.com",
+        "vegannigerian.com",
+        "goldennewsng.com"
+        ]
+
+
+
+
+
+    def pick_random_websites(self, websites):
+        num_pick = random.randint(1, 3)
+        if num_pick > len(websites):
+            raise ValueError("num_pick must be less than or equal to the number of websites.")
+        return random.sample(websites, num_pick)
         
     
     def launch_profile(self, email, password, backup_email):
@@ -44,6 +113,59 @@ class Youtube:
         else:
             raise(f"Error: No Email or Password was Passed for {email} with password: {password}")
         return driver
+
+
+    def scroll(self, driver):
+        driver.execute_async_script(
+            """
+        count = 400;
+        let callback = arguments[arguments.length - 1];
+        t = setTimeout(function scrolldown(){
+            console.log(count, t);
+            window.scrollTo(0, count);
+            if(count < (document.body.scrollHeight || document.documentElement.scrollHeight)){
+              count+= 400;
+              t = setTimeout(scrolldown, 1000);
+            }else{
+              callback((document.body.scrollHeight || document.documentElement.scrollHeight));
+            }
+        }, 1000);"""
+        )
+    
+    def warmup_accounts(self, email, password, backup_email):
+        """
+            This Function warms up the accounts to look my human like and evade bot detection
+        """
+        random_websites = self.pick_random_websites(self.nigerian_websites)
+        driver = self.launch_profile(email, password, backup_email)
+        print("Warming up Google accounts please hold")
+        for website in random_websites:
+            print(f"{email} accessing {website}")
+            try:
+                driver.uc_open_with_tab(website)
+                try:
+                    htmlElement = WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((By.XPATH, "/html/body/div[1]/div[1]/div[2]/h1/span"))
+                    )
+                    html_content = htmlElement.get_attribute('outerHTML')
+                except Exception as e:
+                    self.scroll(driver)
+                    pass
+            except Exception as e:
+                print(f"Error loading website {website}")
+                pass
+            sleep_duration = random.uniform(2, 7)
+            print(f"Sleeping for {sleep_duration:.2f} seconds...")
+            time.sleep(sleep_duration)
+        
+        print("Now going to pixelscan")
+        driver.uc_open_with_tab("https://pixelscan.net/")
+        self.scroll(driver)
+        print("Now in pixelscan and sleeping for 20 seconds")
+        time.sleep(6000)
+        pass
+        # return driver
+        
     
     
     def like_comment(self, comment_url, email, password, backup_email):
@@ -55,7 +177,8 @@ class Youtube:
             password (str): This is a bot password
         """
         #global driver
-        driver = self.launch_profile(email, password, backup_email)
+        driver = self.warmup_accounts(email, password, backup_email)
+        print("Finished Warming up Google Account")
         
         if comment_url:
             for url in comment_url:
@@ -63,12 +186,13 @@ class Youtube:
                     try:
                         #driver = self.launch_profile(email, password, backup_email)
                         print("Getting URL")
+                        print(f"URL {attempt} TRY IS {url}")
                         driver.get(url)
                         # Opening YouTube and navigating to video
-                        print("About to Sleep For 20 Seconds")
+                        print("About to Sleep For 15 Seconds")
                         time.sleep(15)
                         # Navigating to comments section
-                        print("Finished Sleeping for 20 seconds for youtube page to load")
+                        print("Finished Sleeping for 15 seconds for youtube page to load")
                         comments_section = WebDriverWait(driver, 15).until(
                             EC.presence_of_element_located((By.XPATH, "/html/body/ytd-app/div[1]/ytd-page-manager/ytd-watch-flexy/div[5]/div[1]/div/div[2]/ytd-comments/ytd-item-section-renderer"))
                                                             #"/html/body/ytd-app/div[1]/ytd-page-manager/ytd-watch-flexy/div[5]/div[1]/div/div[2]/ytd-comments"))
@@ -200,6 +324,8 @@ class Youtube:
         if email and password:
             try:
                 print("Please Hold")
+                #driver = self.warmup_accounts(email, password, backup_email)
+                #print("Finished warming up accounts proceeding to like comments")
                 self.like_comment(urls, email, password, backup_email)
             except Exception as e:
                 print(e)
